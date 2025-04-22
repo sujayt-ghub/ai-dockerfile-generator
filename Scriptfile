@@ -1,4 +1,4 @@
-sudo apt update
+sudo apt update -y
 curl -fsSL https://ollama.com/install.sh | sh
 sudo apt install python3.12-venv -y
 ollama pull smollm2:135m-instruct-q3_K_L
