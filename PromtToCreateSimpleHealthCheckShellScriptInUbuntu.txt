@@ -1,1 +1,148 @@
 Create a shell script where the script should analyze health of the virtual machine based on the cpu, memory and disk space. If any of these three things are less than 60 percent utilized, the script declares the state of vm as healthy. Whereas if any of these parameters are more than 60 percent, script declares the health as Not healthy. Also, the script should support a command line argument named "explain", when passed the script should explain the reason for health status. Target virtual machines are always ubuntu.
+
+
+
+##########################
+
+Below is simple shell script program for health check created from bolt.new online tool
+
+#!/bin/bash
+
+# vm_health_check.sh - Script to analyze VM health based on resource utilization
+# Usage: ./vm_health_check.sh [explain]
+
+# Function to check CPU utilization
+check_cpu() {
+  # Get CPU idle percentage using top
+  cpu_idle=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/")
+  # Calculate CPU usage percentage
+  cpu_usage=$(awk "BEGIN {print 100 - $cpu_idle}")
+  echo "$cpu_usage"
+}
+
+# Function to check memory utilization
+check_memory() {
+  # Get memory information
+  mem_info=$(free | grep Mem)
+  total_mem=$(echo "$mem_info" | awk '{print $2}')
+  used_mem=$(echo "$mem_info" | awk '{print $3}')
+  # Calculate memory usage percentage
+  mem_usage=$(awk "BEGIN {print $used_mem*100/$total_mem}")
+  echo "$mem_usage"
+}
+
+# Function to check disk space utilization
+check_disk() {
+  # Get disk usage percentage for root filesystem
+  disk_usage=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+  echo "$disk_usage"
+}
+
+# Function to colorize output
+colorize() {
+  local text=$1
+  local status=$2
+  
+  if [ "$status" == "healthy" ]; then
+    echo -e "\e[32m$text\e[0m" # Green
+  elif [ "$status" == "warning" ]; then
+    echo -e "\e[33m$text\e[0m" # Yellow
+  else
+    echo -e "\e[31m$text\e[0m" # Red
+  fi
+}
+
+# Main function to check VM health
+check_vm_health() {
+  # Get utilization percentages
+  cpu_usage=$(check_cpu)
+  mem_usage=$(check_memory)
+  disk_usage=$(check_disk)
+  
+  # Format for display (round to one decimal place)
+  cpu_rounded=$(printf "%.1f" $cpu_usage)
+  mem_rounded=$(printf "%.1f" $mem_usage)
+  
+  # Check if any utilization is above 60%
+  cpu_healthy=$(awk "BEGIN {print ($cpu_usage < 60) ? 1 : 0}")
+  mem_healthy=$(awk "BEGIN {print ($mem_usage < 60) ? 1 : 0}")
+  disk_healthy=$(awk "BEGIN {print ($disk_usage < 60) ? 1 : 0}")
+  
+  # Determine overall health status
+  if [ "$cpu_healthy" -eq 1 ] && [ "$mem_healthy" -eq 1 ] && [ "$disk_healthy" -eq 1 ]; then
+    health_status="Healthy"
+    color_status="healthy"
+  else
+    health_status="Not healthy"
+    color_status="unhealthy"
+  fi
+  
+  # Print VM information
+  echo "----------------------------------------"
+  echo "          VM HEALTH ANALYSIS            "
+  echo "----------------------------------------"
+  echo -n "VM Health Status: "
+  colorize "$health_status" "$color_status"
+  echo "----------------------------------------"
+  
+  # If explain argument is provided, show detailed information
+  if [ "$1" == "explain" ]; then
+    echo "Resource Utilization:"
+    echo -n "- CPU Usage:    "
+    if [ "$cpu_healthy" -eq 1 ]; then
+      colorize "${cpu_rounded}%" "healthy"
+    else
+      colorize "${cpu_rounded}%" "unhealthy"
+    fi
+    echo "  (Threshold: 60%)"
+    
+    echo -n "- Memory Usage: "
+    if [ "$mem_healthy" -eq 1 ]; then
+      colorize "${mem_rounded}%" "healthy"
+    else
+      colorize "${mem_rounded}%" "unhealthy"
+    fi
+    echo "  (Threshold: 60%)"
+    
+    echo -n "- Disk Usage:   "
+    if [ "$disk_healthy" -eq 1 ]; then
+      colorize "${disk_usage}%" "healthy"
+    else
+      colorize "${disk_usage}%" "unhealthy"
+    fi
+    echo "  (Threshold: 60%)"
+    
+    # Explain why VM is not healthy (if applicable)
+    if [ "$health_status" == "Not healthy" ]; then
+      echo "----------------------------------------"
+      echo "Health Issues:"
+      if [ "$cpu_healthy" -eq 0 ]; then
+        echo "- CPU usage is at or above 60% (${cpu_rounded}%)"
+      fi
+      if [ "$mem_healthy" -eq 0 ]; then
+        echo "- Memory usage is at or above 60% (${mem_rounded}%)"
+      fi
+      if [ "$disk_healthy" -eq 0 ]; then
+        echo "- Disk usage is at or above 60% (${disk_usage}%)"
+      fi
+      echo "----------------------------------------"
+      echo "Recommendation: Consider optimizing resource usage"
+      echo "or upgrading the VM specifications."
+    fi
+  else
+    echo "Run with 'explain' argument for detailed information:"
+    echo "./vm_health_check.sh explain"
+  fi
+  echo "----------------------------------------"
+}
+
+# Check if explain argument is provided
+if [ "$1" == "explain" ]; then
+  check_vm_health "explain"
+else
+  check_vm_health
+fi
+
+
+
+
