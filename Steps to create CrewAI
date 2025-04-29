@@ -1,0 +1,23 @@
+check python version below 3.10 to 3.13 as per search
+    2  mkdir crew-example
+    3  cd crew-example
+    9  sudo apt update
+
+   12  #python3 -m venv venv
+   13  sudo apt install python3.12-venv
+   15  python3 -m venv crew
+   16  source crew/bin/activate
+   17  pip install crewai
+   18  ls - ltr
+   19  ls -ltr
+   20  crewai create crew devops-ai-project
+look main.py inside src folder
+   21  vi main.py
+       change the topic as per the need example - docker and adjust the file per requirement 
+
+   33  cd ..
+   34  come back to devops-ai-project
+       crewai install
+   36  crewai run
+   38  cat report.md
+   40  history
